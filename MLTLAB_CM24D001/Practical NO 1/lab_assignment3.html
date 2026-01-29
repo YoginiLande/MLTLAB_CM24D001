@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Task 3: Prediction</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+</head>
+<body>
+
+<h3>Task 3: Prediction Output</h3>
+<p>Open Console</p>
+
+<script>
+  const xTrain = tf.tensor2d([1,2,3,4,5], [5,1]);
+  const yTrain = tf.tensor2d([3,5,7,9,11], [5,1]);
+
+  async function predict() {
+    const model = tf.sequential();
+    model.add(tf.layers.dense({units:1, inputShape:[1]}));
+
+    model.compile({
+      optimizer: tf.train.sgd(0.01),
+      loss: 'meanSquaredError'
+    });
+
+    await model.fit(xTrain, yTrain, {epochs:200});
+
+    const prediction = model.predict(tf.tensor2d([6],[1,1]));
+    prediction.print(); // Expected ≈ 13
+  }
+
+  predict();
+</script>
+
+</body>
+</html>

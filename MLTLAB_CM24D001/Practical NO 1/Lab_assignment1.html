@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Task 1: Regression & Plot</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis"></script>
+</head>
+<body>
+
+<h3>Task 1: Actual vs Predicted</h3>
+
+<script>
+  const xData = [1,2,3,4,5];
+  const yData = [3,5,7,9,11]; // y = 2x + 1
+
+  async function run() {
+    const xTrain = tf.tensor2d(xData, [5,1]);
+    const yTrain = tf.tensor2d(yData, [5,1]);
+
+    const model = tf.sequential();
+    model.add(tf.layers.dense({units:1, inputShape:[1]}));
+
+    model.compile({
+      optimizer: tf.train.sgd(0.01),
+      loss: 'meanSquaredError'
+    });
+
+    await model.fit(xTrain, yTrain, {epochs:200});
+
+    const actual = xData.map((x,i)=>({x, y:yData[i]}));
+    const predicted = xData.map(x=>({
+      x,
+      y: model.predict(tf.tensor2d([x],[1,1])).dataSync()[0]
+    }));
+
+    tfvis.render.scatterplot(
+      {name:'Actual vs Predicted'},
+      {values:[actual, predicted], series:['Actual','Predicted']},
+      {xLabel:'X', yLabel:'Y'}
+    );
+  }
+
+  run();
+</script>
+
+</body>
+</html>

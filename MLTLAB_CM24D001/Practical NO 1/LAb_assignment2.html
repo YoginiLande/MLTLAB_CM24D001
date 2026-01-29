@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Task 2: Learning Rate Analysis</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+</head>
+<body>
+
+<h3>Task 2: Check Console for Loss</h3>
+
+<script>
+  const x = tf.tensor2d([1,2,3,4,5], [5,1]);
+  const y = tf.tensor2d([3,5,7,9,11], [5,1]);
+
+  async function trainModel(lr) {
+    const model = tf.sequential();
+    model.add(tf.layers.dense({units:1, inputShape:[1]}));
+
+    model.compile({
+      optimizer: tf.train.sgd(lr),
+      loss: 'meanSquaredError'
+    });
+
+    console.log("Training with Learning Rate =", lr);
+
+    await model.fit(x, y, {
+      epochs: 50,
+      callbacks:{
+        onEpochEnd:(e,l)=>console.log(`Epoch ${e} Loss: ${l.loss}`)
+      }
+    });
+  }
+
+  // Change learning rate here
+  trainModel(0.01);   // try 0.1 or 0.001
+</script>
+
+</body>
+</html>

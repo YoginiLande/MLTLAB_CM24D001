@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Predicted vs Actual Temperature</title>
+    <script src="https://cdn.plot.ly/plotly-2.26.1.min.js"></script>
+</head>
+<body>
+    <div id="plot" style="width:600px;height:400px;"></div>
+    <script>
+        // Training data
+        const X_train = [2000,2001,2002,2003,2004];
+        const Y_train = [15.2,15.5,15.8,16.1,16.3];
+
+        // Linear regression calculation
+        const n = X_train.length;
+        const meanX = X_train.reduce((a,b)=>a+b,0)/n;
+        const meanY = Y_train.reduce((a,b)=>a+b,0)/n;
+
+        let num=0, den=0;
+        for(let i=0;i<n;i++){
+            num += (X_train[i]-meanX)*(Y_train[i]-meanY);
+            den += (X_train[i]-meanX)**2;
+        }
+        const m = num/den;
+        const c = meanY - m*meanX;
+
+        // Predicted values
+        const Y_pred = X_train.map(x => m*x + c);
+
+        // Plot
+        Plotly.newPlot('plot', [
+            {x:X_train, y:Y_train, mode:'markers', name:'Actual', marker:{color:'blue'}},
+            {x:X_train, y:Y_pred, mode:'lines+markers', name:'Predicted', line:{color:'red'}}
+        ], {title:'Predicted vs Actual Temperature', xaxis:{title:'Year'}, yaxis:{title:'Temperature (°C)'}});
+    </script>
+</body>
+</html>

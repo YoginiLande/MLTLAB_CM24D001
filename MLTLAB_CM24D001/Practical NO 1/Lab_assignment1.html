@@ -1,47 +1,38 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Task 1: Regression & Plot</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis"></script>
+    <meta charset="UTF-8">
+    <title>Predicted vs Actual Temperature</title>
+    <script src="https://cdn.plot.ly/plotly-2.26.1.min.js"></script>
 </head>
 <body>
+    <div id="plot" style="width:600px;height:400px;"></div>
+    <script>
+        // Training data
+        const X_train = [2000,2001,2002,2003,2004];
+        const Y_train = [15.2,15.5,15.8,16.1,16.3];
 
-<h3>Task 1: Actual vs Predicted</h3>
+        // Linear regression calculation
+        const n = X_train.length;
+        const meanX = X_train.reduce((a,b)=>a+b,0)/n;
+        const meanY = Y_train.reduce((a,b)=>a+b,0)/n;
 
-<script>
-  const xData = [1,2,3,4,5];
-  const yData = [3,5,7,9,11]; // y = 2x + 1
+        let num=0, den=0;
+        for(let i=0;i<n;i++){
+            num += (X_train[i]-meanX)*(Y_train[i]-meanY);
+            den += (X_train[i]-meanX)**2;
+        }
+        const m = num/den;
+        const c = meanY - m*meanX;
 
-  async function run() {
-    const xTrain = tf.tensor2d(xData, [5,1]);
-    const yTrain = tf.tensor2d(yData, [5,1]);
+        // Predicted values
+        const Y_pred = X_train.map(x => m*x + c);
 
-    const model = tf.sequential();
-    model.add(tf.layers.dense({units:1, inputShape:[1]}));
-
-    model.compile({
-      optimizer: tf.train.sgd(0.01),
-      loss: 'meanSquaredError'
-    });
-
-    await model.fit(xTrain, yTrain, {epochs:200});
-
-    const actual = xData.map((x,i)=>({x, y:yData[i]}));
-    const predicted = xData.map(x=>({
-      x,
-      y: model.predict(tf.tensor2d([x],[1,1])).dataSync()[0]
-    }));
-
-    tfvis.render.scatterplot(
-      {name:'Actual vs Predicted'},
-      {values:[actual, predicted], series:['Actual','Predicted']},
-      {xLabel:'X', yLabel:'Y'}
-    );
-  }
-
-  run();
-</script>
-
+        // Plot
+        Plotly.newPlot('plot', [
+            {x:X_train, y:Y_train, mode:'markers', name:'Actual', marker:{color:'blue'}},
+            {x:X_train, y:Y_pred, mode:'lines+markers', name:'Predicted', line:{color:'red'}}
+        ], {title:'Predicted vs Actual Temperature', xaxis:{title:'Year'}, yaxis:{title:'Temperature (°C)'}});
+    </script>
 </body>
 </html>

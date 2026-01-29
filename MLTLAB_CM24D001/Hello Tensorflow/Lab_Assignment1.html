@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tensor Creation using CDN</title>
+    <!-- TensorFlow.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+</head>
+<body>
+    <h2>Tensor Creation using TensorFlow.js (CDN)</h2>
+
+    <script>
+        // Scalar (0D tensor)
+        const scalar = tf.scalar(5);
+        console.log("Scalar:");
+        scalar.print();
+
+        // Vector (1D tensor)
+        const vector = tf.tensor1d([1, 2, 3, 4]);
+        console.log("Vector:");
+        vector.print();
+
+        // Matrix (2D tensor)
+        const matrix = tf.tensor2d(
+            [[1, 2],
+             [3, 4]]
+        );
+        console.log("Matrix:");
+        matrix.print();
+    </script>
+</body>
+</html>

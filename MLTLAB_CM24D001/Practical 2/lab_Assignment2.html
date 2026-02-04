@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Draw & Predict</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<style>
+canvas{border:2px solid black;background:black;}
+</style>
+</head>
+
+<body>
+
+<h2>Draw Digit</h2>
+<canvas id="c" width="280" height="280"></canvas><br>
+<button onclick="predict()">Predict</button>
+<button onclick="clearC()">Clear</button>
+<h3 id="out"></h3>
+
+<script>
+const c=document.getElementById("c");
+const ctx=c.getContext("2d");
+ctx.fillStyle="black";
+ctx.fillRect(0,0,280,280);
+
+let draw=false;
+c.onmousedown=()=>draw=true;
+c.onmouseup=()=>draw=false;
+c.onmousemove=e=>{
+ if(!draw)return;
+ ctx.fillStyle="white";
+ ctx.beginPath();
+ ctx.arc(e.offsetX,e.offsetY,10,0,6.28);
+ ctx.fill();
+};
+
+function clearC(){
+ ctx.fillStyle="black";
+ ctx.fillRect(0,0,280,280);
+}
+
+const model=tf.sequential({
+ layers:[
+  tf.layers.flatten({inputShape:[28,28,1]}),
+  tf.layers.dense({units:32,activation:'relu'}),
+  tf.layers.dense({units:10,activation:'softmax'})
+ ]
+});
+model.compile({optimizer:'adam',loss:'categoricalCrossentropy'});
+
+async function predict(){
+ const img=tf.browser.fromPixels(c,1)
+ .resizeNearestNeighbor([28,28])
+ .toFloat().div(255).expandDims(0);
+
+ const out=model.predict(img);
+ const digit=out.argMax(1).dataSync()[0];
+ document.getElementById("out").innerText="Prediction: "+digit;
+}
+</script>
+</body>
+</html>

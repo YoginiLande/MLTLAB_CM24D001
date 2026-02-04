@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CNN vs Dense</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+</head>
+
+<body>
+<h2>Model Comparison</h2>
+<button onclick="run()">Run Comparison</button>
+<pre id="log"></pre>
+
+<script>
+function log(t){document.getElementById("log").textContent+=t+"\n";}
+
+async function train(model,name){
+ const xs=tf.randomNormal([1500,28,28,1]);
+ const ys=tf.oneHot(tf.randomUniform([1500],0,10,'int32'),10);
+
+ model.compile({optimizer:'adam',loss:'categoricalCrossentropy',metrics:['accuracy']});
+
+ let h=await model.fit(xs,ys,{epochs:3});
+ log(name+" accuracy: "+h.history.acc[2].toFixed(3));
+}
+
+async function run(){
+
+ const dense=tf.sequential({
+  layers:[
+   tf.layers.flatten({inputShape:[28,28,1]}),
+   tf.layers.dense({units:64,activation:'relu'}),
+   tf.layers.dense({units:10,activation:'softmax'})
+  ]
+ });
+
+ const cnn=tf.sequential({
+  layers:[
+   tf.layers.conv2d({inputShape:[28,28,1],filters:8,kernelSize:3,activation:'relu'}),
+   tf.layers.maxPooling2d({poolSize:2}),
+   tf.layers.flatten(),
+   tf.layers.dense({units:10,activation:'softmax'})
+  ]
+ });
+
+ await train(dense,"Dense");
+ await train(cnn,"CNN");
+
+ log("CNN usually performs better on images ✅");
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Real MNIST CNN</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis"></script>
+  <script src="https://storage.googleapis.com/learnjs-data/model-builder/mnist_images.png"></script>
+  <style>
+    body { text-align:center; font-family:Arial; }
+    canvas { border:2px solid black; background:black; cursor:crosshair; }
+    button { padding:10px; margin:5px; }
+  </style>
+</head>
+
+<body>
+
+<h2>MNIST Digit Prediction</h2>
+
+<button onclick="train()">Train Model</button><br><br>
+
+<canvas id="canvas" width="280" height="280"></canvas><br>
+<button onclick="clearCanvas()">Clear</button>
+<button onclick="predict()">Predict</button>
+
+<h3 id="result">Not trained</h3>
+
+<script>
+let model;
+
+function createModel(){
+  const m = tf.sequential();
+  m.add(tf.layers.conv2d({
+    inputShape:[28,28,1],
+    filters:8,
+    kernelSize:5,
+    activation:'relu'
+  }));
+  m.add(tf.layers.maxPooling2d({poolSize:2}));
+  m.add(tf.layers.flatten());
+  m.add(tf.layers.dense({units:10,activation:'softmax'}));
+
+  m.compile({
+    optimizer:'adam',
+    loss:'categoricalCrossentropy',
+    metrics:['accuracy']
+  });
+
+  return m;
+}
+
+async function train(){
+  document.getElementById("result").innerText="Training...";
+
+  model=createModel();
+
+  const xs=tf.randomNormal([1000,28,28,1]);
+  const ys=tf.oneHot(tf.randomUniform([1000],0,10,'int32'),10);
+
+  await model.fit(xs,ys,{epochs:5});
+
+  document.getElementById("result").innerText="Training done ✅";
+}
+
+// canvas
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+ctx.fillStyle="black";
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+let drawing=false;
+canvas.onmousedown=()=>drawing=true;
+canvas.onmouseup=()=>drawing=false;
+canvas.onmousemove=e=>{
+  if(!drawing)return;
+  ctx.fillStyle="white";
+  ctx.beginPath();
+  ctx.arc(e.offsetX,e.offsetY,12,0,Math.PI*2);
+  ctx.fill();
+};
+
+function clearCanvas(){
+  ctx.fillStyle="black";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+}
+
+async function predict(){
+  if(!model){
+    alert("Train first!");
+    return;
+  }
+
+  const img=tf.browser.fromPixels(canvas,1)
+    .resizeNearestNeighbor([28,28])
+    .toFloat()
+    .div(255)
+    .expandDims(0);
+
+  const p=model.predict(img);
+  const digit=p.argMax(1).dataSync()[0];
+
+  document.getElementById("result").innerText=
+    "Predicted: "+digit;
+}
+</script>
+
+</body>
+</html>

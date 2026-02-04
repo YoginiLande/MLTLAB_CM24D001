@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MNIST CNN Sample</title>
+
+    <!-- TensorFlow.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+</head>
+<body>
+
+<h2>Digit Recognition using CNN (Sample MNIST)</h2>
+<button onclick="run()">Train Model</button>
+<p id="output">Click the button to start...</p>
+
+<script>
+
+async function loadSampleData(){
+
+    const data = await fetch(
+        "https://storage.googleapis.com/tfjs-examples/mnist-data/mnist.json"
+    ).then(res => res.json());
+
+    // 👉 TAKE ONLY SMALL SAMPLE
+    const TRAIN_SIZE = 2000;
+    const TEST_SIZE = 500;
+
+    const trainImages = tf.tensor4d(
+        data.trainImages.slice(0, TRAIN_SIZE * 784),
+        [TRAIN_SIZE, 28, 28, 1]
+    );
+
+    const trainLabels = tf.tensor2d(
+        data.trainLabels.slice(0, TRAIN_SIZE * 10),
+        [TRAIN_SIZE, 10]
+    );
+
+    const testImages = tf.tensor4d(
+        data.testImages.slice(0, TEST_SIZE * 784),
+        [TEST_SIZE, 28, 28, 1]
+    );
+
+    const testLabels = tf.tensor2d(
+        data.testLabels.slice(0, TEST_SIZE * 10),
+        [TEST_SIZE, 10]
+    );
+
+    return {trainImages, trainLabels, testImages, testLabels};
+}
+
+
+// CNN MODEL
+function createModel(){
+
+    const model = tf.sequential();
+
+    model.add(tf.layers.conv2d({
+        inputShape:[28,28,1],
+        filters:8,
+        kernelSize:3,
+        activation:'relu'
+    }));
+
+    model.add(tf.layers.maxPooling2d({poolSize:2}));
+
+    model.add(tf.layers.flatten());
+
+    model.add(tf.layers.dense({
+        units:32,
+        activation:'relu'
+    }));
+
+    model.add(tf.layers.dense({
+        units:10,
+        activation:'softmax'
+    }));
+
+    model.compile({
+        optimizer:'adam',
+        loss:'categoricalCrossentropy',
+        metrics:['accuracy']
+    });
+
+    return model;
+}
+
+
+async function run(){
+
+    document.getElementById("output").innerText = "Loading sample dataset...";
+
+    const data = await loadSampleData();
+    const model = createModel();
+
+    document.getElementById("output").innerText = "Training on sample data...";
+
+    await model.fit(data.trainImages, data.trainLabels, {
+        epochs:3,
+        batchSize:64
+    });
+
+    document.getElementById("output").innerText = "Evaluating...";
+
+    const result = model.evaluate(data.testImages, data.testLabels);
+    const acc = await result[1].data();
+
+    document.getElementById("output").innerText =
+        "Test Accuracy (Sample Data): " + (acc[0]*100).toFixed(2) + "%";
+
+    // Predict one digit
+    const pred = model.predict(data.testImages.slice([0,0,0,0],[1,28,28,1]));
+    const digit = await pred.argMax(1).data();
+
+    alert("Predicted Digit: " + digit[0]);
+}
+
+</script>
+
+</body>
+</html>

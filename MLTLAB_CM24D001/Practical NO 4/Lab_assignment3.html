@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+
+</head>
+
+<body>
+
+<h2>Model Comparison</h2>
+
+<input type="file" id="upload">
+
+<br><br>
+
+<img id="img" width="300">
+
+<h3>MobileNet Result</h3>
+<div id="mobile"></div>
+
+<h3>COCO-SSD Result</h3>
+<div id="coco"></div>
+
+<script>
+
+let mobileModel;
+let cocoModel;
+
+async function loadModels(){
+
+mobileModel = await mobilenet.load();
+cocoModel = await cocoSsd.load();
+
+}
+
+loadModels();
+
+document.getElementById("upload").addEventListener("change", function(event){
+
+let img = document.getElementById("img");
+img.src = URL.createObjectURL(event.target.files[0]);
+
+img.onload = async function(){
+
+let m = await mobileModel.classify(img);
+let c = await cocoModel.detect(img);
+
+document.getElementById("mobile").innerHTML =
+m[0].className + " ("+(m[0].probability*100).toFixed(2)+"%)";
+
+if(c.length>0)
+document.getElementById("coco").innerHTML =
+c[0].class + " ("+(c[0].score*100).toFixed(2)+"%)";
+
+}
+
+});
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Sentiment Analysis</title>
+
+<!-- TensorFlow.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+</head>
+
+<body>
+
+<h2>Text Sentiment Analysis</h2>
+
+<input type="text" id="textInput" placeholder="Enter text here">
+<button onclick="analyzeSentiment()">Analyze</button>
+
+<p id="result"></p>
+
+<script>
+
+function analyzeSentiment() {
+
+let text = document.getElementById("textInput").value.toLowerCase()
+
+// simple keyword sentiment logic
+let positiveWords = ["good","great","amazing","love","excellent","happy"]
+let negativeWords = ["bad","terrible","hate","worst","sad","poor"]
+
+let score = 0
+
+positiveWords.forEach(word=>{
+    if(text.includes(word)){
+        score++
+    }
+})
+
+negativeWords.forEach(word=>{
+    if(text.includes(word)){
+        score--
+    }
+})
+
+let result = ""
+
+if(score > 0){
+    result = "Positive 😊"
+}
+else if(score < 0){
+    result = "Negative 😞"
+}
+else{
+    result = "Neutral 😐"
+}
+
+document.getElementById("result").innerText = "Sentiment: " + result
+
+}
+
+</script>
+
+</body>
+</html>

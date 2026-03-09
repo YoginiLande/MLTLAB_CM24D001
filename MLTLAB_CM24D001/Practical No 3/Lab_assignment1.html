@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Task 1 - Train Sentiment Model</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+</head>
+
+<body>
+
+<h2>Train Sentiment Model</h2>
+<button onclick="train()">Train Model</button>
+
+<p id="status"></p>
+
+<script>
+
+const sentences = [
+"I love this movie",
+"This is amazing",
+"I like this product",
+"This is fantastic",
+"I hate this movie",
+"This is terrible",
+"I dislike this product",
+"This is the worst"
+]
+
+const labels = [1,1,1,1,0,0,0,0]
+
+let xs = tf.tensor2d([
+[1,2,3],[2,3,4],[1,3,4],[2,4,5],
+[6,7,8],[7,8,9],[6,8,9],[7,9,10]
+])
+
+let ys = tf.tensor2d(labels,[labels.length,1])
+
+const model = tf.sequential()
+
+model.add(tf.layers.dense({
+units:8,
+activation:'relu',
+inputShape:[3]
+}))
+
+model.add(tf.layers.dense({
+units:1,
+activation:'sigmoid'
+}))
+
+model.compile({
+optimizer:'adam',
+loss:'binaryCrossentropy',
+metrics:['accuracy']
+})
+
+async function train(){
+
+await model.fit(xs,ys,{epochs:50})
+
+document.getElementById("status").innerText =
+"Training Completed Successfully"
+
+}
+
+</script>
+
+</body>
+</html>

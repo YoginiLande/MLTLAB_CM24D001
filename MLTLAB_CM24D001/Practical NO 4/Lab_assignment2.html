@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>MobileNet Accuracy Test</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+</head>
+
+<body>
+
+<h2>MobileNet Accuracy Test (Upload 5 Images)</h2>
+
+<button onclick="loadModel()">Load Model</button>
+
+<br><br>
+
+<input type="file" id="upload" multiple>
+
+<br><br>
+
+<div id="results"></div>
+
+<script>
+
+let model;
+
+async function loadModel(){
+
+document.getElementById("results").innerHTML="Loading model...";
+
+model = await mobilenet.load();
+
+document.getElementById("results").innerHTML="Model Loaded. Now upload images.";
+
+}
+
+document.getElementById("upload").addEventListener("change", async function(event){
+
+if(!model){
+alert("Please load the model first!");
+return;
+}
+
+let files = event.target.files;
+let output="";
+
+for(let i=0;i<files.length;i++){
+
+let img = document.createElement("img");
+img.src = URL.createObjectURL(files[i]);
+img.width = 200;
+
+document.body.appendChild(img);
+
+await new Promise(resolve => img.onload = resolve);
+
+let predictions = await model.classify(img);
+
+output += "<b>Image "+(i+1)+"</b><br>";
+output += "Prediction: "+predictions[0].className+"<br>";
+output += "Confidence: "+(predictions[0].probability*100).toFixed(2)+"%<br><br>";
+
+}
+
+document.getElementById("results").innerHTML=output;
+
+});
+
+</script>
+
+</body>
+</html>

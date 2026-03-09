@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>MobileNet Image Classification</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+</head>
+
+<body>
+
+<h2>MobileNet Image Classification</h2>
+
+<input type="file" id="imageUpload">
+
+<br><br>
+
+<img id="img" width="300">
+
+<h3>Top 3 Predictions</h3>
+<div id="result">Model loading...</div>
+
+<script>
+
+let model;
+
+async function init(){
+model = await mobilenet.load();
+document.getElementById("result").innerHTML="Model Loaded. Upload Image.";
+}
+
+init();
+
+document.getElementById("imageUpload").addEventListener("change", function(event){
+
+const file = event.target.files[0];
+const img = document.getElementById("img");
+
+img.src = URL.createObjectURL(file);
+
+img.onload = async function(){
+
+const predictions = await model.classify(img,3);
+
+let html="";
+
+predictions.forEach(p=>{
+html += p.className + " : " + (p.probability*100).toFixed(2)+"% <br>";
+});
+
+document.getElementById("result").innerHTML = html;
+
+}
+
+});
+
+</script>
+
+</body>
+</html>

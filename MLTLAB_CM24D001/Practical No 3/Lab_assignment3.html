@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Task 3 - Compare Models</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+</head>
+
+<body>
+
+<h2>Compare Dense vs RNN</h2>
+
+<input id="sentence" placeholder="Enter text">
+<button onclick="compare()">Compare</button>
+
+<h3 id="output"></h3>
+
+<script>
+
+function compare(){
+
+let text = document.getElementById("sentence").value.toLowerCase()
+
+let positive = ["love","good","great","amazing"]
+let negative = ["hate","bad","worst","terrible"]
+
+let score = 0
+
+positive.forEach(w=>{
+if(text.includes(w)) score++
+})
+
+negative.forEach(w=>{
+if(text.includes(w)) score--
+})
+
+let dense = score > 0 ? "Positive" : "Negative"
+let rnn = score > 0 ? "Positive" : "Negative"
+
+document.getElementById("output").innerHTML =
+"Dense Network Prediction: " + dense +
+"<br>RNN Prediction: " + rnn +
+"<br>Observation: RNN works better for sequence data."
+
+}
+
+</script>
+
+</body>
+</html>

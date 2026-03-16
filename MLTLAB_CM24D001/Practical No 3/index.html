@@ -1,59 +1,148 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Sentiment Analysis</title>
+<title>Sentiment Analysis Yogini Lande (CM24D001)</title>
 
 <!-- TensorFlow.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f4f6f9;
+text-align:center;
+padding:40px;
+}
+
+.container{
+background:white;
+padding:30px;
+width:400px;
+margin:auto;
+border-radius:10px;
+box-shadow:0px 0px 10px rgba(0,0,0,0.2);
+}
+
+input{
+width:80%;
+padding:10px;
+margin:10px;
+}
+
+button{
+padding:10px 20px;
+background:#007BFF;
+color:white;
+border:none;
+border-radius:5px;
+cursor:pointer;
+}
+
+button:hover{
+background:#0056b3;
+}
+
+</style>
 
 </head>
 
 <body>
 
-<h2>Text Sentiment Analysis</h2>
+<div class="container">
 
-<input type="text" id="textInput" placeholder="Enter text here">
-<button onclick="analyzeSentiment()">Analyze</button>
+<h2>Sentiment Analysis (CM24D001)</h2>
+
+<input type="text" id="textInput" placeholder="Enter sentence">
+
+<br>
+
+<button onclick="predictSentiment()">Analyze</button>
 
 <p id="result"></p>
 
+</div>
+
 <script>
 
-function analyzeSentiment() {
+// Training data
+const sentences = [
+"I love this product",
+"This is amazing",
+"I am very happy",
+"This is terrible",
+"I hate this",
+"Worst experience ever"
+]
 
-let text = document.getElementById("textInput").value.toLowerCase()
+const labels = [1,1,1,0,0,0]
 
-// simple keyword sentiment logic
-let positiveWords = ["good","great","amazing","love","excellent","happy"]
-let negativeWords = ["bad","terrible","hate","worst","sad","poor"]
+// Convert text to simple numbers
+function textToVector(text){
+
+let positive = ["love","amazing","happy"]
+let negative = ["hate","terrible","worst"]
 
 let score = 0
 
-positiveWords.forEach(word=>{
-    if(text.includes(word)){
-        score++
-    }
+positive.forEach(word=>{
+if(text.includes(word)) score++
 })
 
-negativeWords.forEach(word=>{
-    if(text.includes(word)){
-        score--
-    }
+negative.forEach(word=>{
+if(text.includes(word)) score--
 })
 
-let result = ""
+return [score]
 
-if(score > 0){
-    result = "Positive 😊"
-}
-else if(score < 0){
-    result = "Negative 😞"
-}
-else{
-    result = "Neutral 😐"
 }
 
-document.getElementById("result").innerText = "Sentiment: " + result
+// Prepare training data
+const xs = tf.tensor2d(sentences.map(s=>textToVector(s)))
+const ys = tf.tensor2d(labels,[labels.length,1])
+
+// Build model
+const model = tf.sequential()
+
+model.add(tf.layers.dense({
+units:1,
+inputShape:[1],
+activation:"sigmoid"
+}))
+
+model.compile({
+optimizer:"sgd",
+loss:"binaryCrossentropy"
+})
+
+// Train model
+async function trainModel(){
+
+await model.fit(xs,ys,{
+epochs:100
+})
+
+console.log("Model trained")
+
+}
+
+trainModel()
+
+// Prediction
+async function predictSentiment(){
+
+let text=document.getElementById("textInput").value.toLowerCase()
+
+let vector=textToVector(text)
+
+let prediction=model.predict(tf.tensor2d([vector]))
+
+let value=prediction.dataSync()[0]
+
+let sentiment=value>0.5?"Positive 😊":"Negative 😞"
+
+document.getElementById("result").innerHTML=
+"Sentiment: "+sentiment+" (Confidence "+value.toFixed(2)+")"
 
 }
 

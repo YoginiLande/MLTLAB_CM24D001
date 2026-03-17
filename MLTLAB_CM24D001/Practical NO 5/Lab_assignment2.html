@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Lab 2 - Bounding Box Overlay</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+
+<style>
+.container{
+    position:relative;
+    display:inline-block;
+}
+video{
+    width:640px;
+}
+canvas{
+    position:absolute;
+    top:0;
+    left:0;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Object Detection with Bounding Boxes</h2>
+
+<div class="container">
+    <video id="webcam" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+</div>
+
+<script>
+const video = document.getElementById("webcam");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+async function setupCamera(){
+    const stream = await navigator.mediaDevices.getUserMedia({video:true});
+    video.srcObject = stream;
+
+    return new Promise(resolve=>{
+        video.onloadedmetadata = ()=> resolve(video);
+    });
+}
+
+async function detect(model){
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    async function loop(){
+
+        const predictions = await model.detect(video);
+
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+
+        predictions.forEach(p=>{
+            const [x,y,w,h] = p.bbox;
+
+            ctx.strokeStyle="red";
+            ctx.lineWidth=2;
+            ctx.strokeRect(x,y,w,h);
+
+            ctx.fillStyle="red";
+            ctx.fillText(
+                p.class + " " + Math.round(p.score*100)+"%",
+                x,
+                y>10 ? y-5 : 10
+            );
+        });
+
+        requestAnimationFrame(loop);
+    }
+
+    loop();
+}
+
+async function main(){
+    await setupCamera();
+    const model = await cocoSsd.load();
+    detect(model);
+}
+
+main();
+</script>
+
+</body>
+</html>

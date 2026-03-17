@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Lab 1 - Object Detection</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+
+<style>
+body{text-align:center;}
+video{border:2px solid black;}
+</style>
+</head>
+
+<body>
+
+<h2>Object Detection using Webcam</h2>
+
+<video id="webcam" autoplay playsinline width="500"></video>
+<p id="output">Loading...</p>
+
+<script>
+const video = document.getElementById("webcam");
+const output = document.getElementById("output");
+
+async function setupCamera(){
+    const stream = await navigator.mediaDevices.getUserMedia({video:true});
+    video.srcObject = stream;
+
+    return new Promise(resolve=>{
+        video.onloadedmetadata = ()=> resolve(video);
+    });
+}
+
+async function main(){
+    await setupCamera();
+    const model = await cocoSsd.load();
+
+    async function detect(){
+        const predictions = await model.detect(video);
+
+        if(predictions.length > 0){
+            output.innerText = "Detected: " + predictions[0].class;
+        }
+
+        requestAnimationFrame(detect);
+    }
+
+    detect();
+}
+
+main();
+</script>
+
+</body>
+</html>

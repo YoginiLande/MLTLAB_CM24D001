@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Lab 3 - FPS Detection</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+
+<style>
+body{text-align:center;}
+</style>
+</head>
+
+<body>
+
+<h2>FPS Measurement (COCO-SSD)</h2>
+
+<video id="webcam" autoplay playsinline width="500"></video>
+<p id="fps">FPS: 0</p>
+
+<script>
+const video = document.getElementById("webcam");
+const fpsText = document.getElementById("fps");
+
+let frameCount = 0;
+let lastTime = performance.now();
+
+async function setupCamera(){
+    const stream = await navigator.mediaDevices.getUserMedia({video:true});
+    video.srcObject = stream;
+
+    return new Promise(resolve=>{
+        video.onloadedmetadata = ()=> resolve(video);
+    });
+}
+
+async function main(){
+    await setupCamera();
+    const model = await cocoSsd.load();
+
+    async function loop(){
+
+        await model.detect(video);
+
+        frameCount++;
+        let now = performance.now();
+
+        if(now - lastTime >= 1000){
+            fpsText.innerText = "FPS: " + frameCount;
+            frameCount = 0;
+            lastTime = now;
+        }
+
+        requestAnimationFrame(loop);
+    }
+
+    loop();
+}
+
+main();
+</script>
+
+</body>
+</html>

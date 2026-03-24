@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <title>TensorFlow.js Model UI - Stylish Version</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600&family=Roboto&display=swap');
+
+    /* Body & container */
+    body {
+      margin: 0;
+      height: 100vh;
+      background: linear-gradient(135deg, #6e8efb, #a777e3);
+      font-family: 'Roboto', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      user-select: none;
+    }
+    .container {
+      background: rgba(255,255,255,0.15);
+      border-radius: 25px;
+      padding: 40px 50px;
+      width: 380px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      backdrop-filter: blur(12px);
+      text-align: center;
+    }
+    h1 {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      font-size: 2.2rem;
+      letter-spacing: 0.15em;
+      margin-bottom: 8px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    p.subtitle {
+      font-size: 0.95rem;
+      margin-bottom: 30px;
+      letter-spacing: 0.06em;
+      color: #dcd6f7;
+      font-weight: 500;
+    }
+
+    /* Buttons container */
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    /* Buttons */
+    button {
+      background: linear-gradient(145deg, #ffffffaa, #e1e4ff);
+      border: none;
+      border-radius: 12px;
+      color: #4b48a4;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 14px 24px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow:
+        4px 4px 10px rgba(0,0,0,0.1),
+        -4px -4px 15px rgba(255,255,255,0.8);
+      min-width: 130px;
+      user-select: none;
+      letter-spacing: 0.04em;
+    }
+    button:hover {
+      color: #261e94;
+      box-shadow:
+        inset 4px 4px 10px rgba(0,0,0,0.2),
+        inset -4px -4px 15px rgba(255,255,255,0.6);
+      background: linear-gradient(145deg, #b9bafc, #6c69ff);
+      transform: translateY(-3px) scale(1.05);
+    }
+    button:active {
+      transform: translateY(1px) scale(0.97);
+      box-shadow:
+        inset 1px 1px 2px rgba(0,0,0,0.3),
+        inset -1px -1px 3px rgba(255,255,255,0.5);
+    }
+
+    /* Input */
+    input[type="number"] {
+      width: 85%;
+      padding: 16px 20px;
+      border-radius: 16px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 25px;
+      outline: none;
+      box-shadow:
+        6px 6px 16px rgba(0,0,0,0.15),
+        -6px -6px 16px rgba(255,255,255,0.6);
+      background: #f0f0ffdd;
+      color: #4b48a4;
+      transition: box-shadow 0.3s ease;
+      user-select: text;
+    }
+    input[type="number"]:focus {
+      box-shadow:
+        inset 6px 6px 16px rgba(0,0,0,0.3),
+        inset -6px -6px 16px rgba(255,255,255,0.8);
+      background: #dde0ffdd;
+    }
+
+    /* Output text */
+    .output {
+      font-weight: 700;
+      font-size: 1.3rem;
+      margin-top: 20px;
+      min-height: 28px;
+      letter-spacing: 0.04em;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    #statusMessage {
+      font-size: 0.9rem;
+      margin-top: 6px;
+      color: #bbbce3;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      min-height: 20px;
+    }
+
+    /* Responsive tweak */
+    @media (max-width: 400px) {
+      .container {
+        width: 90vw;
+        padding: 30px 20px;
+      }
+      button {
+        min-width: 110px;
+        padding: 12px 16px;
+        font-size: 0.85rem;
+      }
+      input[type="number"] {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>TENSORFLOW.JS MODEL</h1>
+    <h2> Yogini Lande (CM24D001)
+    </h2>
+    <p class="subtitle">Local Training • Save • Reload • Export</p>
+
+    <div class="btn-group">
+      <button id="trainBtn">Train Model</button>
+      <button id="saveBtn">Save Model</button>
+      <button id="loadBtn">Reload Model</button>
+    </div>
+
+    <input type="number" id="inputX" placeholder="Enter X value" />
+
+    <div class="btn-group">
+      <button id="predictOriginalBtn">Predict Original</button>
+      <button id="predictReloadedBtn">Predict Reloaded</button>
+    </div>
+
+    <button id="exportBtn" style="margin-top: 10px;">Export Model</button>
+
+    <div class="output" id="outputResult">Result: --</div>
+    <div id="statusMessage">Status: Waiting...</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
+  <script>
+    let model, reloadedModel;
+
+    async function trainModel() {
+      updateStatus("Training model...");
+      model = tf.sequential();
+      model.add(tf.layers.dense({units: 1, inputShape: [1]}));
+      model.compile({loss: 'meanSquaredError', optimizer: 'adam'});
+
+      const xs = tf.tensor2d([1, 2, 3, 4], [4, 1]);
+      const ys = tf.tensor2d([1, 3, 5, 7], [4, 1]); // y=2x-1
+
+      await model.fit(xs, ys, {epochs: 300});
+      updateStatus("Model trained!");
+    }
+
+    async function saveModel() {
+      if (!model) return alert("Train the model first!");
+      await model.save('localstorage://unique-tfjs-model');
+      updateStatus("Model saved locally!");
+    }
+
+    async function loadModel() {
+      try {
+        reloadedModel = await tf.loadLayersModel('localstorage://unique-tfjs-model');
+        updateStatus("Model loaded from storage!");
+      } catch {
+        alert("No saved model found, train and save first!");
+      }
+    }
+
+    function predict(inputValue, useReloaded = false) {
+      if (inputValue === "" || isNaN(inputValue)) {
+        alert("Please enter a valid number");
+        return;
+      }
+      let activeModel = useReloaded ? reloadedModel : model;
+      if (!activeModel) {
+        alert("Model not available! Train or reload first.");
+        return;
+      }
+
+      const inputTensor = tf.tensor2d([parseFloat(inputValue)], [1, 1]);
+      const outputTensor = activeModel.predict(inputTensor);
+      const result = outputTensor.dataSync()[0].toFixed(3);
+      document.getElementById('outputResult').innerText = `Result: ${result}`;
+    }
+
+    async function exportModel() {
+      if (!model) return alert("Train the model first!");
+      await model.save('downloads://unique-tfjs-exported-model');
+      updateStatus("Model exported for download!");
+    }
+
+    function updateStatus(message) {
+      document.getElementById('statusMessage').innerText = "Status: " + message;
+    }
+
+    document.getElementById('trainBtn').onclick = trainModel;
+    document.getElementById('saveBtn').onclick = saveModel;
+    document.getElementById('loadBtn').onclick = loadModel;
+    document.getElementById('predictOriginalBtn').onclick = () => {
+      predict(document.getElementById('inputX').value, false);
+    };
+    document.getElementById('predictReloadedBtn').onclick = () => {
+      predict(document.getElementById('inputX').value, true);
+    };
+    document.getElementById('exportBtn').onclick = exportModel;
+  </script>
+</body>
+</html>

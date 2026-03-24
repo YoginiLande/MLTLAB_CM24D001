@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Task 2 - Test Sentiment</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+</head>
+
+<body>
+
+<h2>Test Sentiment</h2>
+
+<input id="text" placeholder="Enter sentence">
+<button onclick="predict()">Predict</button>
+
+<h3 id="result"></h3>
+
+<script>
+
+function predict(){
+
+let sentence = document.getElementById("text").value.toLowerCase()
+
+let positive = ["love","amazing","great","good"]
+let negative = ["hate","terrible","bad","worst"]
+
+let score = 0
+
+positive.forEach(w=>{
+if(sentence.includes(w)) score++
+})
+
+negative.forEach(w=>{
+if(sentence.includes(w)) score--
+})
+
+let sentiment
+let confidence
+
+if(score > 0){
+sentiment = "Positive"
+confidence = 0.9
+}
+else if(score < 0){
+sentiment = "Negative"
+confidence = 0.9
+}
+else{
+sentiment = "Neutral"
+confidence = 0.5
+}
+
+document.getElementById("result").innerText =
+"Sentiment: " + sentiment + " | Confidence: " + confidence
+
+}
+
+</script>
+
+</body>
+</html>

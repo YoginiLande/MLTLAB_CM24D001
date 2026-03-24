@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Webcam Object Detection</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+
+<style>
+body{
+    font-family: Arial;
+    text-align:center;
+    background:#f4f6f9;
+}
+
+h1{
+    color:#333;
+}
+
+video{
+    border:3px solid #333;
+    border-radius:10px;
+}
+
+canvas{
+    position:absolute;
+    left:0;
+    top:0;
+}
+
+.container{
+    position:relative;
+    display:inline-block;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Real-Time Object Detection</h1>
+
+<div class="container">
+    <video id="webcam" autoplay playsinline width="640" height="480"></video>
+    <canvas id="canvas"></canvas>
+</div>
+
+<p id="status">Loading Model...</p>
+
+<script>
+
+const video = document.getElementById("webcam");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+async function setupCamera(){
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+        video:true
+    });
+
+    video.srcObject = stream;
+
+    return new Promise(resolve=>{
+        video.onloadedmetadata = ()=>{
+            resolve(video);
+        };
+    });
+}
+
+async function detectObjects(model){
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    async function detect(){
+
+        const predictions = await model.detect(video);
+
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+
+        predictions.forEach(prediction=>{
+
+            const [x,y,width,height] = prediction.bbox;
+
+            ctx.strokeStyle="red";
+            ctx.lineWidth=2;
+            ctx.strokeRect(x,y,width,height);
+
+            ctx.font="16px Arial";
+            ctx.fillStyle="red";
+
+            ctx.fillText(
+                prediction.class + " " + 
+                Math.round(prediction.score*100)+"%",
+                x,
+                y>10 ? y-5 : 10
+            );
+
+        });
+
+        requestAnimationFrame(detect);
+    }
+
+    detect();
+}
+
+async function main(){
+
+    await setupCamera();
+
+    document.getElementById("status").innerText="Loading AI Model...";
+
+    const model = await cocoSsd.load();
+
+    document.getElementById("status").innerText="Model Loaded! Detecting...";
+
+    detectObjects(model);
+}
+
+main();
+
+</script>
+
+</body>
+</html>

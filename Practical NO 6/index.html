@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Pose Detection + Posture</title>
+
+<!-- ✅ Stable versions -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.20.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/posenet@2.2.1"></script>
+
+<link rel="icon" href="data:,">
+
+<style>
+body {
+  font-family: Arial;
+  background: #0f172a;
+  color: white;
+  text-align: center;
+  padding: 20px;
+}
+
+.container {
+  max-width: 700px;
+  margin: auto;
+}
+
+canvas {
+  width: 100%;
+  transform: scaleX(-1);
+  border-radius: 10px;
+}
+
+video {
+  display: none;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 10px;
+}
+
+.box {
+  background: #1e293b;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+#status {
+  margin-top: 10px;
+  color: #22c55e;
+}
+
+#poseLabel {
+  margin-top: 12px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #38bdf8;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>Pose Detection + Posture Classification</h2>
+
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas"></canvas>
+
+  <div id="status">Loading...</div>
+
+  <div class="stats">
+    <div class="box">Keypoints<br><span id="kp">--</span></div>
+    <div class="box">Confidence<br><span id="score">--</span></div>
+    <div class="box">FPS<br><span id="fps">--</span></div>
+  </div>
+
+  <div id="poseLabel">Detecting...</div>
+</div>
+
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const kpEl = document.getElementById("kp");
+const scoreEl = document.getElementById("score");
+const fpsEl = document.getElementById("fps");
+const statusEl = document.getElementById("status");
+const poseLabel = document.getElementById("poseLabel");
+
+let net;
+let lastTime = performance.now();
+let frames = 0;
+
+// 🎥 Camera setup
+async function setupCamera() {
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: true,
+    audio: false
+  });
+  video.srcObject = stream;
+
+  return new Promise(resolve => {
+    video.onloadedmetadata = () => resolve(video);
+  });
+}
+
+// 🔵 Draw keypoints
+function drawKeypoints(keypoints) {
+  keypoints.forEach(kp => {
+    if (kp.score > 0.5) {
+      ctx.beginPath();
+      ctx.arc(kp.position.x, kp.position.y, 5, 0, 2 * Math.PI);
+      ctx.fillStyle = "#22c55e";
+      ctx.fill();
+    }
+  });
+}
+
+// 🧠 Pose classification (Standing vs Sitting)
+function classifyPose(keypoints) {
+  const kp = {};
+  keypoints.forEach(k => kp[k.part] = k);
+
+  const leftHip = kp["leftHip"];
+  const leftKnee = kp["leftKnee"];
+  const rightHip = kp["rightHip"];
+  const rightKnee = kp["rightKnee"];
+
+  if (!leftHip || !leftKnee || !rightHip || !rightKnee) {
+    return "Detecting...";
+  }
+
+  // Require confidence
+  if (
+    leftHip.score < 0.4 || leftKnee.score < 0.4 ||
+    rightHip.score < 0.4 || rightKnee.score < 0.4
+  ) {
+    return "Adjust position...";
+  }
+
+  const hipY = (leftHip.position.y + rightHip.position.y) / 2;
+  const kneeY = (leftKnee.position.y + rightKnee.position.y) / 2;
+
+  // 🔥 Improved logic
+  if (kneeY - hipY > 100) {
+    return "Standing 🧍";
+  } else {
+    return "Sitting 🪑";
+  }
+}
+
+// 🔁 Detection loop
+async function detect() {
+  if (!net) return;
+
+  const pose = await net.estimateSinglePose(video);
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  ctx.drawImage(video, 0, 0);
+
+  drawKeypoints(pose.keypoints);
+
+  // Stats
+  const visible = pose.keypoints.filter(k => k.score > 0.5).length;
+  kpEl.textContent = visible + "/17";
+  scoreEl.textContent = (pose.score * 100).toFixed(1) + "%";
+
+  // 🧠 Classification
+  const label = classifyPose(pose.keypoints);
+  poseLabel.textContent = label;
+
+  // FPS
+  frames++;
+  const now = performance.now();
+  if (now - lastTime >= 1000) {
+    fpsEl.textContent = frames;
+    frames = 0;
+    lastTime = now;
+  }
+
+  requestAnimationFrame(detect);
+}
+
+// 🚀 Main
+async function main() {
+  try {
+    statusEl.textContent = "Requesting camera...";
+    await setupCamera();
+    video.play();
+
+    statusEl.textContent = "Loading AI model...";
+    net = await posenet.load({
+      architecture: 'MobileNetV1',
+      outputStride: 16,
+      inputResolution: { width: 640, height: 480 },
+      multiplier: 0.75
+    });
+
+    statusEl.textContent = "Running detection...";
+    detect();
+
+  } catch (err) {
+    statusEl.style.color = "red";
+    statusEl.textContent = "Error: " + err.message;
+    console.error(err);
+  }
+}
+
+main();
+</script>
+
+</body>
+</html>

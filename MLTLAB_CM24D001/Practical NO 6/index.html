@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Pose Detection System</title>
+
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+  <!-- PoseNet -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/posenet"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: white;
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 20px;
+      font-size: 32px;
+    }
+
+    p {
+      color: #ccc;
+    }
+
+    .container {
+      margin-top: 20px;
+      position: relative;
+      display: inline-block;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(0,255,255,0.3);
+    }
+
+    video, canvas {
+      border-radius: 20px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px 25px;
+      font-size: 16px;
+      border: none;
+      border-radius: 25px;
+      background: linear-gradient(to right, #0072ff, #00c6ff);
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px #00c6ff;
+    }
+
+    .status {
+      margin-top: 15px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #00ffcc;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🧍 Pose Detection </h1>
+<h2> yogini Lande (CM24D001)</h2>
+<p>Real-time Sitting / Standing Detection</p>
+
+<button onclick="startApp()">Start Camera</button>
+
+<div class="container">
+  <video id="video" width="640" height="480" autoplay playsinline></video>
+  <canvas id="canvas" width="640" height="480"></canvas>
+</div>
+
+<div class="status" id="status">Status: Waiting...</div>
+
+<script>
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  const statusText = document.getElementById("status");
+
+  // Setup Camera
+  async function setupCamera() {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true
+    });
+    video.srcObject = stream;
+
+    return new Promise((resolve) => {
+      video.onloadedmetadata = () => resolve(video);
+    });
+  }
+
+  // Draw Keypoints
+  function drawKeypoints(keypoints) {
+    keypoints.forEach(point => {
+      if (point.score > 0.5) {
+        const { x, y } = point.position;
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, 2 * Math.PI);
+        ctx.fillStyle = "#00ffff";
+        ctx.fill();
+      }
+    });
+  }
+
+  // Draw Skeleton
+  function drawSkeleton(keypoints) {
+    const adjacent = posenet.getAdjacentKeyPoints(keypoints, 0.5);
+    adjacent.forEach(([a, b]) => {
+      ctx.beginPath();
+      ctx.moveTo(a.position.x, a.position.y);
+      ctx.lineTo(b.position.x, b.position.y);
+      ctx.strokeStyle = "#00ff99";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    });
+  }
+
+  // Calculate angle
+  function getAngle(A, B, C) {
+    const AB = { x: A.x - B.x, y: A.y - B.y };
+    const CB = { x: C.x - B.x, y: C.y - B.y };
+
+    const dot = (AB.x * CB.x + AB.y * CB.y);
+    const magAB = Math.sqrt(AB.x**2 + AB.y**2);
+    const magCB = Math.sqrt(CB.x**2 + CB.y**2);
+
+    const angle = Math.acos(dot / (magAB * magCB));
+    return angle * (180 / Math.PI);
+  }
+
+  // Detect Sitting / Standing
+  function detectPosture(keypoints) {
+    const hip = keypoints.find(p => p.part === "leftHip");
+    const knee = keypoints.find(p => p.part === "leftKnee");
+    const ankle = keypoints.find(p => p.part === "leftAnkle");
+
+    if (hip.score > 0.5 && knee.score > 0.5 && ankle.score > 0.5) {
+      const angle = getAngle(hip.position, knee.position, ankle.position);
+
+      if (angle < 100) {
+        return "🪑 Sitting";
+      } else {
+        return "🧍 Standing";
+      }
+    }
+
+    return "Adjust Position...";
+  }
+
+  // Main Function
+  async function startApp() {
+    const net = await posenet.load();
+
+    await setupCamera();
+    video.play();
+
+    async function detect() {
+      const pose = await net.estimateSinglePose(video, {
+        flipHorizontal: true
+      });
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      drawKeypoints(pose.keypoints);
+      drawSkeleton(pose.keypoints);
+
+      const posture = detectPosture(pose.keypoints);
+      statusText.innerText = "Status: " + posture;
+
+      requestAnimationFrame(detect);
+    }
+
+    detect();
+  }
+</script>
+
+</body>
+</html>

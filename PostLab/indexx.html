@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hybrid Plant AI System</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      background: linear-gradient(to right, #56ab2f, #a8e063);
+      margin: 0;
+    }
+
+    h1 {
+      color: white;
+      margin-top: 20px;
+    }
+
+    .card {
+      background: white;
+      width: 400px;
+      margin: 30px auto;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0px 8px 20px rgba(0,0,0,0.2);
+    }
+
+    img {
+      width: 100%;
+      margin-top: 10px;
+      border-radius: 10px;
+      display: none;
+    }
+
+    input {
+      margin-top: 10px;
+    }
+
+    .box {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      background: #f1f8e9;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🌿 Hybrid Plant Detection System</h1>
+
+<div class="card">
+  <input type="file" id="upload" accept="image/*">
+  <img id="img">
+
+  <div class="box" id="status">⏳ Loading models...</div>
+  <div class="box" id="result"></div>
+</div>
+
+<script>
+let mobilenetModel;
+let plantModel;
+let modelsLoaded = false;
+
+// Disable upload initially
+document.getElementById("upload").disabled = true;
+
+// Load models
+async function loadModels() {
+  try {
+    mobilenetModel = await mobilenet.load();
+    plantModel = await tf.loadLayersModel("model/model.json");
+
+    modelsLoaded = true;
+
+    document.getElementById("status").innerText = "✅ Models Loaded";
+    document.getElementById("upload").disabled = false;
+
+  } catch (error) {
+    document.getElementById("status").innerText = "❌ Error loading models";
+    console.error(error);
+  }
+}
+
+loadModels();
+
+const plantInfo = {
+  "Mango": "🥭 Mango is rich in vitamins.",
+  "Neem": "🌿 Neem has medicinal properties.",
+  "Tulsi": "🌱 Tulsi boosts immunity."
+};
+
+const solution = {
+  "Healthy": "✅ Plant is healthy",
+  "Diseased": "⚠️ Apply treatment"
+};
+
+document.getElementById("upload").onchange = async (e) => {
+
+  const file = e.target.files[0];
+  const img = document.getElementById("img");
+
+  img.style.display = "block";
+  img.src = URL.createObjectURL(file);
+
+  img.onload = async () => {
+
+    if (!modelsLoaded) {
+      document.getElementById("status").innerText = "⏳ Models still loading...";
+      return;
+    }
+
+    document.getElementById("status").innerText = "🔍 Checking image...";
+
+    try {
+      // STEP 1: MobileNet
+      const generalPred = await mobilenetModel.classify(img);
+
+      let isPlant = generalPred.some(p =>
+        p.className.toLowerCase().includes("plant") ||
+        p.className.toLowerCase().includes("leaf") ||
+        p.className.toLowerCase().includes("tree") ||
+        p.className.toLowerCase().includes("flower")
+      );
+
+      if (!isPlant) {
+        document.getElementById("status").innerText = "❌ Not a plant image";
+        document.getElementById("result").innerHTML = "";
+        return;
+      }
+
+      document.getElementById("status").innerText = "🌿 Plant detected, analyzing...";
+
+      // STEP 2: Custom Model
+      let tensor = tf.browser.fromPixels(img)
+        .resizeNearestNeighbor([224, 224])
+        .toFloat()
+        .div(255)
+        .expandDims();
+
+      let predictions = await plantModel.predict(tensor).data();
+
+      let classes = [
+        "Mango_Healthy","Mango_Diseased",
+        "Neem_Healthy","Neem_Diseased",
+        "Tulsi_Healthy","Tulsi_Diseased"
+      ];
+
+      let maxIndex = predictions.indexOf(Math.max(...predictions));
+      let confidence = predictions[maxIndex];
+
+      if (confidence < 0.7) {
+        document.getElementById("result").innerHTML =
+          "❌ Low confidence. Try clearer leaf image.";
+        return;
+      }
+
+      let [plant, status] = classes[maxIndex].split("_");
+
+      document.getElementById("result").innerHTML =
+        `🌱 ${plant} <br>
+         🦠 ${status} <br>
+         📊 ${(confidence*100).toFixed(2)}% 
+         <br><br>
+         📖 ${plantInfo[plant]} 
+         <br>
+         💡 ${solution[status]}`;
+
+    } catch (err) {
+      console.error(err);
+      document.getElementById("status").innerText = "❌ Error during prediction";
+    }
+  };
+};
+</script>
+
+</body>
+</html>

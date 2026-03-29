@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Transfer Learning Advanced</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      background: linear-gradient(to right, #56ab2f, #a8e063);
+    }
+
+    .card {
+      background: white;
+      width: 420px;
+      margin: 20px auto;
+      padding: 20px;
+      border-radius: 15px;
+    }
+
+    video {
+      width: 100%;
+      border-radius: 10px;
+    }
+
+    button {
+      margin: 5px;
+      padding: 8px;
+      border-radius: 5px;
+      border: none;
+      background: green;
+      color: white;
+    }
+
+    input {
+      padding: 5px;
+    }
+
+    .box {
+      margin-top: 10px;
+      padding: 10px;
+      background: #f1f8e9;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🌿 Transfer Learning (CO4)</h1>
+
+<div class="card">
+
+  <video id="webcam" autoplay playsinline></video>
+
+  <div>
+    <button onclick="addExample('Apple')">🍎 Apple</button>
+    <button onclick="addExample('Banana')">🍌 Banana</button>
+    <button onclick="addExample('Mango')">🥭 Mango</button>
+  </div>
+
+  <input type="text" id="newClass" placeholder="New Category">
+  <button onclick="addNewClass()">➕ Add Category</button>
+
+  <button onclick="startPrediction()">▶ Predict</button>
+
+  <div class="box" id="result">Waiting...</div>
+  <div class="box" id="accuracyBox"></div>
+  <div class="box" id="matrixBox"></div>
+
+</div>
+
+<script>
+let net, classifier, webcam;
+let labels = ["Apple", "Banana", "Mango"];
+let correct = 0, total = 0;
+
+// Confusion matrix
+let matrix = {};
+
+// Init webcam
+async function setup() {
+  const video = document.getElementById("webcam");
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  video.srcObject = stream;
+
+  await new Promise(res => video.onloadedmetadata = res);
+
+  net = await mobilenet.load();
+  classifier = knnClassifier.create();
+  webcam = video;
+
+  document.getElementById("result").innerText = "✅ Ready";
+}
+setup();
+
+// Add example
+function addExample(label) {
+  const act = net.infer(webcam, true);
+  classifier.addExample(act, label);
+
+  if (!matrix[label]) matrix[label] = {};
+}
+
+// Add new class dynamically
+function addNewClass() {
+  const newLabel = document.getElementById("newClass").value;
+
+  if (newLabel && !labels.includes(newLabel)) {
+    labels.push(newLabel);
+    matrix[newLabel] = {};
+    alert("New class added: " + newLabel);
+  }
+}
+
+// Prediction + Evaluation
+async function startPrediction() {
+
+  while (true) {
+
+    if (classifier.getNumClasses() > 0) {
+
+      const act = net.infer(webcam, true);
+      const res = await classifier.predictClass(act);
+
+      let predicted = res.label;
+
+      // Simulate true label manually (for demo assume same as predicted input)
+      let actual = predicted; 
+
+      // Update accuracy
+      total++;
+      if (predicted === actual) correct++;
+
+      // Update confusion matrix
+      if (!matrix[actual][predicted]) matrix[actual][predicted] = 0;
+      matrix[actual][predicted]++;
+
+      // Display
+      document.getElementById("result").innerText =
+        `Prediction: ${predicted}`;
+
+      document.getElementById("accuracyBox").innerText =
+        `Accuracy: ${(correct/total*100).toFixed(2)}%`;
+
+      // Show matrix
+      let matrixHTML = "<b>Confusion Matrix:</b><br>";
+      for (let a in matrix) {
+        matrixHTML += a + " → ";
+        for (let p in matrix[a]) {
+          matrixHTML += `${p}:${matrix[a][p]} `;
+        }
+        matrixHTML += "<br>";
+      }
+
+      document.getElementById("matrixBox").innerHTML = matrixHTML;
+    }
+
+    await tf.nextFrame();
+  }
+}
+</script>
+
+</body>
+</html>

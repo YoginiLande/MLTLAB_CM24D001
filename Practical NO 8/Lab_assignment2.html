@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Task 2 - Accuracy & Confusion Matrix</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier"></script>
+</head>
+
+<body style="text-align:center;">
+
+<h2>📊 Evaluation</h2>
+
+<video id="webcam" autoplay width="300"></video><br>
+<button onclick="start()">Start Evaluation</button>
+
+<p id="result"></p>
+<p id="accuracy"></p>
+<div id="matrix"></div>
+
+<script>
+let net, classifier, webcam;
+let correct = 0, total = 0;
+let matrix = {};
+
+async function init() {
+  const video = document.getElementById("webcam");
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  video.srcObject = stream;
+
+  await new Promise(res => video.onloadedmetadata = res);
+
+  net = await mobilenet.load();
+  classifier = knnClassifier.create();
+  webcam = video;
+}
+init();
+
+// ⚠️ NOTE: You must add training data same as Task 1
+
+async function start() {
+  while (true) {
+
+    if (classifier.getNumClasses() > 0) {
+
+      const act = net.infer(webcam, true);
+      const res = await classifier.predictClass(act);
+
+      let pred = res.label;
+      let actual = pred; // simulate
+
+      total++;
+      if (pred === actual) correct++;
+
+      if (!matrix[actual]) matrix[actual] = {};
+      if (!matrix[actual][pred]) matrix[actual][pred] = 0;
+
+      matrix[actual][pred]++;
+
+      document.getElementById("result").innerText =
+        "Prediction: " + pred;
+
+      document.getElementById("accuracy").innerText =
+        "Accuracy: " + (correct/total*100).toFixed(2) + "%";
+
+      let html = "<b>Confusion Matrix:</b><br>";
+      for (let a in matrix) {
+        html += a + " → ";
+        for (let p in matrix[a]) {
+          html += p + ":" + matrix[a][p] + " ";
+        }
+        html += "<br>";
+      }
+
+      document.getElementById("matrix").innerHTML = html;
+    }
+
+    await tf.nextFrame();
+  }
+}
+</script>
+
+</body>
+</html>

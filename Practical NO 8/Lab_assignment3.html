@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Task 3 - Add New Category</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier"></script>
+</head>
+
+<body style="text-align:center;">
+
+<h2>➕ Add New Category</h2>
+
+<video id="webcam" autoplay width="300"></video><br>
+
+<input type="text" id="newClass" placeholder="Enter new class">
+<button onclick="addNew()">Add Class</button>
+
+<button onclick="addExample()">Capture Sample</button>
+
+<p id="status"></p>
+
+<script>
+let net, classifier, webcam;
+let currentClass = "";
+
+async function init() {
+  const video = document.getElementById("webcam");
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  video.srcObject = stream;
+
+  await new Promise(res => video.onloadedmetadata = res);
+
+  net = await mobilenet.load();
+  classifier = knnClassifier.create();
+  webcam = video;
+
+  document.getElementById("status").innerText = "Ready";
+}
+init();
+
+function addNew() {
+  currentClass = document.getElementById("newClass").value;
+  document.getElementById("status").innerText =
+    "New class: " + currentClass;
+}
+
+function addExample() {
+  if (!currentClass) return;
+
+  const act = net.infer(webcam, true);
+  classifier.addExample(act, currentClass);
+
+  document.getElementById("status").innerText =
+    "Sample added for " + currentClass;
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>🌿 Smart Plant AI</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #56ab2f, #a8e063);
+      color: #333;
+      text-align: center;
+    }
+
+    h1 {
+      color: white;
+      margin-top: 20px;
+    }
+
+    .container {
+      background: white;
+      width: 420px;
+      margin: 20px auto;
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0px 10px 25px rgba(0,0,0,0.2);
+    }
+
+    /* Drag box */
+    .upload-box {
+      border: 2px dashed #4caf50;
+      padding: 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+
+    .upload-box:hover {
+      background: #f1f8e9;
+    }
+
+    img, video {
+      width: 100%;
+      height: 250px;
+      object-fit: cover;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 8px 15px;
+      border: none;
+      border-radius: 8px;
+      background: #4caf50;
+      color: white;
+      cursor: pointer;
+    }
+
+    .result {
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 10px;
+      background: #f1f8e9;
+      font-weight: bold;
+    }
+
+    .info {
+      margin-top: 10px;
+      padding: 10px;
+      background: #e3f2fd;
+      border-radius: 10px;
+    }
+
+    .solution {
+      margin-top: 10px;
+      padding: 10px;
+      background: #fff3e0;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🌿 Smart Plant AI System</h1>
+<p style="color:white;">⚠️ Upload clear close-up leaf image</p>
+
+<div class="container">
+
+  <div class="upload-box" id="dropArea">
+    📂 Drag & Drop Image or Click
+    <input type="file" id="fileInput" hidden>
+  </div>
+
+  <button onclick="startCamera()">📷 Use Camera</button>
+
+  <img id="preview" style="display:none;">
+  <video id="video" autoplay style="display:none;"></video>
+
+  <div class="result" id="result">Loading model...</div>
+  <div class="info" id="infoBox"></div>
+
+</div>
+
+<script>
+let model;
+let stream;
+
+// Load model
+async function loadModel() {
+  model = await tf.loadLayersModel("model/model.json");
+  document.getElementById("result").innerText = "✅ Model Loaded";
+}
+loadModel();
+
+// Plant info
+const plantInfo = {
+  "Mango": "🥭 Mango is rich in vitamins.",
+  "Neem": "🌿 Neem has medicinal properties.",
+  "Tulsi": "🌱 Tulsi boosts immunity."
+};
+
+const solution = {
+  "Healthy": "✅ Plant is healthy",
+  "Diseased": "⚠️ Apply treatment"
+};
+
+// Drag & drop
+const dropArea = document.getElementById("dropArea");
+const fileInput = document.getElementById("fileInput");
+
+dropArea.onclick = () => fileInput.click();
+
+dropArea.ondrop = (e) => {
+  e.preventDefault();
+  handleImage(e.dataTransfer.files[0]);
+};
+
+dropArea.ondragover = (e) => e.preventDefault();
+
+fileInput.onchange = (e) => handleImage(e.target.files[0]);
+
+// Camera
+async function startCamera() {
+  const video = document.getElementById("video");
+  video.style.display = "block";
+
+  stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  video.srcObject = stream;
+
+  setInterval(() => predict(video), 2000);
+}
+
+// Handle image
+function handleImage(file) {
+  const img = document.getElementById("preview");
+  img.style.display = "block";
+  img.src = URL.createObjectURL(file);
+
+  img.onload = () => predict(img);
+}
+
+// Prediction
+async function predict(source) {
+  if (!model) return;
+
+  document.getElementById("result").innerText = "🔍 Analyzing...";
+
+  let tensor = tf.browser.fromPixels(source)
+    .resizeNearestNeighbor([224,224])
+    .toFloat()
+    .div(255)
+    .expandDims();
+
+  let preds = await model.predict(tensor).data();
+
+  let classes = [
+    "Mango_Healthy","Mango_Diseased",
+    "Neem_Healthy","Neem_Diseased",
+    "Tulsi_Healthy","Tulsi_Diseased"
+  ];
+
+  let results = classes.map((c,i)=>({name:c, prob:preds[i]}))
+                      .sort((a,b)=>b.prob-a.prob);
+
+  let top = results[0];
+
+  if (top.prob < 0.75) {
+    document.getElementById("result").innerText =
+      "❌ Low confidence. Try clear leaf image.";
+    return;
+  }
+
+  let [plant,status] = top.name.split("_");
+
+  document.getElementById("result").innerHTML =
+    `🌱 ${plant} <br> 🦠 ${status} <br> 📊 ${(top.prob*100).toFixed(2)}%`;
+
+  document.getElementById("infoBox").innerHTML =
+    `<b>About:</b> ${plantInfo[plant]} <br>
+     <div class="solution"><b>Solution:</b> ${solution[status]}</div>`;
+}
+</script>
+
+</body>
+</html>

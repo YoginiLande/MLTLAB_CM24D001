@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Task 1 - Transfer Learning</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier"></script>
+</head>
+
+<body style="text-align:center;">
+
+<h2>🍎🍌🥭 Train Model</h2>
+
+<video id="webcam" autoplay width="300"></video><br>
+
+<button onclick="addExample('Apple')">Apple</button>
+<button onclick="addExample('Banana')">Banana</button>
+<button onclick="addExample('Mango')">Mango</button>
+
+<p id="status">Loading...</p>
+
+<script>
+let net, classifier, webcam;
+
+async function init() {
+  const video = document.getElementById("webcam");
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  video.srcObject = stream;
+
+  await new Promise(res => video.onloadedmetadata = res);
+
+  net = await mobilenet.load();
+  classifier = knnClassifier.create();
+  webcam = video;
+
+  document.getElementById("status").innerText = "Ready";
+}
+init();
+
+function addExample(label) {
+  const act = net.infer(webcam, true);
+  classifier.addExample(act, label);
+  document.getElementById("status").innerText = label + " added";
+}
+</script>
+
+</body>
+</html>
